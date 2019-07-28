@@ -1,0 +1,120 @@
+#!/bin/sh
+
+hasbin()
+{
+    command -vp "$1" >/dev/null 2>&1 && return 0
+    printf "%s: command is required"  "$1"
+    exit 1
+}
+
+set -e
+hasbin sgdisk
+hasbin id
+hasbin lsblk
+hasbin basename
+hasbin dirname
+hasbin cut
+hasbin printf
+set +e
+
+usage()
+{
+    desc="Arguments:
+  device       block device path, ex: /dev/sda
+  directory    all the backup files are stored into the given directory "
+    printf "Usage: %s device directory\n\n%s\n" "$(basename "$0")" "$desc"
+}
+
+checkargs()
+{
+    [ "$#" -ne 2 ] && return 1
+
+    if [ ! -b "$1" ]; then
+        printf "%s: block device not found or read-protected\n"  "$1"
+        return 1
+    fi
+
+    if [ ! -d "$2" ]; then
+        printf "%s: directory not found or read-protected\n"  "$2"
+        return 1
+    fi
+}
+
+save_gpt()
+{
+    _dev="$1"
+    _dirout="$2"
+
+    bkp_file="${_dirout}/$(basename "$_dev")_gpt.img"
+
+    out="$(sgdisk -b "$bkp_file" "$_dev" 2>&1)"
+
+    if [ "$?" -ne 0 ]; then
+        echo "save_gpt: failed"
+        echo "$out"
+        exit 1
+    fi
+
+    echo "save_gpt: ok"
+}
+
+save_mbr()
+{
+    _dev="$1"
+    _dirout="$2"
+
+    bkp_file="${_dirout}/$(basename "$_dev")_mbr.bsc"
+
+    out="$(dd if="$_dev" of="$bkp_file" bs=512 count=1 2>&1)"
+
+    if [ "$?" -ne 0 ]; then
+        echo "save_mbr: failed"
+        echo "$out"
+        exit 1
+    fi
+
+    echo "save_mbr: ok"
+}
+
+save_partition()
+{
+    if ! dd if="$1" bs=4M count=1 status=none | gzip -1 > "$2"; then
+        exit 1
+    fi
+    echo "save_partition"
+}
+
+save_partitions()
+{
+    _blk_path="$1"
+    _dirout="$2"
+
+    part_info_list="$(lsblk "$_blk_path" -n -r | tail -n +2)"
+
+    if [ -z "$part_info_list" ]; then
+        echo "No partition detected"
+        exit 0
+    fi
+
+    blk_dir="$(dirname "$_blk_path")"
+
+    for part_name in $(echo "$part_info_list" | cut -d' ' -f1); do
+        save_partition "${blk_dir}/${part_name}" "${_dirout}/${part_name}.gz"
+    done
+}
+
+main()
+{
+    checkargs "$@" || { usage; exit 2; }
+
+    if [ "$(id -u)" -ne 0 ]; then
+        echo "sudo required"
+        exit 1
+    fi
+
+    save_mbr "$@"
+    save_gpt "$@"
+    save_partitions "$@"
+}
+
+main "$@"
