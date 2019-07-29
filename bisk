@@ -10,7 +10,7 @@ hasbin()
 set -e
 hasbin sgdisk
 hasbin id
-hasbin lsblk
+hasbin lsdblk
 hasbin basename
 hasbin dirname
 hasbin cut
