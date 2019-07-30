@@ -45,7 +45,7 @@ save_gpt()
     _dev="$1"
     _dirout="$2"
 
-    bkp_file="${_dirout}/$(basename "$_dev")_gpt.img"
+    bkp_file="${_dirout}/$(basename "$_dev")_gpt.pcl"
 
     out="$(sgdisk -b "$bkp_file" "$_dev" 2>&1)"
 
@@ -63,7 +63,7 @@ save_mbr()
     _dev="$1"
     _dirout="$2"
 
-    bkp_file="${_dirout}/$(basename "$_dev")_mbr.bsc"
+    bkp_file="${_dirout}/$(basename "$_dev")_mbr.img"
 
     out="$(dd if="$_dev" of="$bkp_file" bs=512 count=1 2>&1)"
 
