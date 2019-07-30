@@ -76,30 +76,42 @@ save_mbr()
     echo "save_mbr: ok"
 }
 
-save_partition()
+save_blk()
 {
-    if ! dd if="$1" bs=4M count=1 status=none | gzip -1 > "$2"; then
-        exit 1
-    fi
-    echo "save_partition"
+    _blk="$1"
+    _dirout="$2"
+
+    blk_path="$(echo "$_blk" | cut -d' ' -f1)"
+    blk_fstype="$(echo "$_blk" | cut -d' ' -f2)"
+    blk_name="$(basename "$blk_path")"
+
+    partclone_opt="-c"
+    [ -z "$blk_fstype" ] && { blk_fstype="dd"; partclone_opt=; }
+
+    partclone."${blk_fstype}" $partclone_opt -d -s "${blk_path}" -N \
+        | gzip -2 > "${_dirout}/${blk_name}.gz"
 }
 
 save_partitions()
 {
-    _blk_path="$1"
+    _dev="$1"
     _dirout="$2"
 
-    part_info_list="$(lsblk "$_blk_path" -n -r | tail -n +2)"
+    data_blks="$(lsdblk "$_dev")"
 
-    if [ -z "$part_info_list" ]; then
+    if [ -z "$data_blks" ]; then
         echo "No partition detected"
         exit 0
     fi
 
-    blk_dir="$(dirname "$_blk_path")"
 
-    for part_name in $(echo "$part_info_list" | cut -d' ' -f1); do
-        save_partition "${blk_dir}/${part_name}" "${_dirout}/${part_name}.gz"
+    echo "$data_blks" | while read -r blk; do
+        # If we fail to clone a block we try with the next one
+        if ! save_blk "$blk" "$_dirout"; then
+            echo "save_blk ${blk}: failed"
+            continue
+        fi
+        echo "save_blk ${blk}: ok"
     done
 }
 
