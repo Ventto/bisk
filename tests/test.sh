@@ -11,9 +11,10 @@ handler_exit()
 
 teardown()
 {
-    printf "\nTEARDOWN - [BEGIN]\n\nDetach logical volumes...\n\n"
+    printf "\nTEARDOWN - [BEGIN]\n"
 
     if lvs -a -o +devices 2>/dev/null | grep "$DEVICE" >/dev/null 2>&1; then
+        printf "\nUnmap logical volumes...\n"
         lv_list="$(lvs -a -o +devices | \
                    grep "$DEVICE" | \
                    awk '{print $2 "/" $1}')"
