@@ -4,13 +4,26 @@ set -e
 
 DEVICE="$(losetup -f 2>/dev/null)"
 
+handler_exit()
+{
+	teardown
+}
+
 teardown()
 {
-    printf "\nTEARDOWN - [BEGIN]\n\n"
+	printf "\nTEARDOWN - [BEGIN]\n\n"
 
     printf "Detach logical volumes...\n\n"
-    dmsetup remove TestDiskGroup-root
-    dmsetup remove TestDiskGroup-home
+
+	if lvs -a -o +devices 2>/dev/null | grep "$DEVICE" >/dev/null 2>&1; then
+ 		lv_list="$(lvs -a -o +devices | \
+				   grep "$DEVICE" | \
+				   awk '{print $2 "/" $1}')"
+    	for lv in $lv_list; do
+			echo "Unmap the '${lv}' logical volume..."
+			dmsetup remove "$lv"
+		done
+	fi
 
     printf "Remove the disk image's block device...\n\n"
     losetup -d "$DEVICE"
@@ -31,8 +44,8 @@ setup()
     printf "Create the '${DEVICE}' block device from './test-disk.img'...\n\n"
     losetup -P "$DEVICE" ./test-disk.img
 
-    # Remove the block device if anything wrong happens
-    trap teardown EXIT
+    # Remove the block device if anything goes wrong or ctrl-c
+    trap handler_exit EXIT
 
     printf "Scan for lvm volumes into '${DEVICE}'...\n\n"
     modprobe dm_mod
@@ -50,6 +63,7 @@ test_main()
     lsblk -f -p -n -l "$DEVICE"
     sleep 5
 
+    printf "\nRun bisk...\n\n"
     ../bisk "$DEVICE" out
 }
 
