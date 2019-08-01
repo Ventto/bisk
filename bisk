@@ -90,6 +90,11 @@ save_blk()
     partclone_fstype="$_blk_fstype"
     [ -z "$_blk_fstype" ] && { partclone_fstype="dd"; partclone_opt=; }
 
+	if ! command -vp "partclone.${partclone_fstype}" >/dev/null 2>&1; then
+		echo "${_blk_fstype}: partclone does not handle this fstype"
+		return 1
+	fi
+
     set -o pipefail
     partclone."${partclone_fstype}" \
             $partclone_opt -d3 -N \
