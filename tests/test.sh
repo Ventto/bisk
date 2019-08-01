@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -e
+set -euf
 
 DEVICE="$(losetup -f 2>/dev/null)"
 
