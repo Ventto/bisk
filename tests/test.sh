@@ -6,24 +6,24 @@ DEVICE="$(losetup -f 2>/dev/null)"
 
 handler_exit()
 {
-	teardown
+    teardown
 }
 
 teardown()
 {
-	printf "\nTEARDOWN - [BEGIN]\n\n"
+    printf "\nTEARDOWN - [BEGIN]\n\n"
 
     printf "Detach logical volumes...\n\n"
 
-	if lvs -a -o +devices 2>/dev/null | grep "$DEVICE" >/dev/null 2>&1; then
- 		lv_list="$(lvs -a -o +devices | \
-				   grep "$DEVICE" | \
-				   awk '{print $2 "/" $1}')"
-    	for lv in $lv_list; do
-			echo "Unmap the '${lv}' logical volume..."
-			dmsetup remove "$lv"
-		done
-	fi
+    if lvs -a -o +devices 2>/dev/null | grep "$DEVICE" >/dev/null 2>&1; then
+        lv_list="$(lvs -a -o +devices | \
+                   grep "$DEVICE" | \
+                   awk '{print $2 "/" $1}')"
+        for lv in $lv_list; do
+            echo "Unmap the '${lv}' logical volume..."
+            dmsetup remove "$lv"
+        done
+    fi
 
     printf "Remove the disk image's block device...\n\n"
     losetup -d "$DEVICE"
