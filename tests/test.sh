@@ -11,9 +11,7 @@ handler_exit()
 
 teardown()
 {
-    printf "\nTEARDOWN - [BEGIN]\n\n"
-
-    printf "Detach logical volumes...\n\n"
+    printf "\nTEARDOWN - [BEGIN]\n\nDetach logical volumes...\n\n"
 
     if lvs -a -o +devices 2>/dev/null | grep "$DEVICE" >/dev/null 2>&1; then
         lv_list="$(lvs -a -o +devices | \
@@ -24,23 +22,19 @@ teardown()
             dmsetup remove "$lv"
         done
     fi
-
     printf "Remove the disk image's block device...\n\n"
     losetup -d "$DEVICE"
-
     printf "TEARDOWN - [END]\n"
 }
 
 setup()
 {
-    echo "SETUP - [BEGIN]"
+    printf "SETUP - [BEGIN]\n\nCheck for an available loop device...\n\n"
 
-    printf "\nCheck for an available loop device...\n\n"
     if [ -z "$DEVICE" ]; then
         echo 'No loop device available'
         exit 1
     fi
-
     printf "Create the '${DEVICE}' block device from './test-disk.img'...\n\n"
     losetup -P "$DEVICE" ./test-disk.img
 
@@ -51,7 +45,6 @@ setup()
     modprobe dm_mod
     vgscan
     vgchange -ay
-
     printf "\nSETUP - [END]\n"
 }
 
